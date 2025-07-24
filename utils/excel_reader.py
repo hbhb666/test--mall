@@ -1,7 +1,6 @@
 import os
 from openpyxl import load_workbook
-from config import base_url  # 从配置文件导入基础URL
-import json
+from config.config import base_url  # 从配置文件导入基础URL
 
 
 def read_excel_test_cases(excel_path: str, sheet_name: str) -> list:
@@ -52,44 +51,6 @@ def read_excel_test_cases(excel_path: str, sheet_name: str) -> list:
             # 替换换行符和多余空格为单个空格，避免JSON解析错误
             params_input = params_input.replace('\n', ' ').replace('\r', ' ').replace('  ', ' ')
             case["参数输入"] = params_input
-    # if params_input:
-    #     print(f"正在处理参数输入：{params_input}")  # 调试信息
-    #     if request_method == "GET":
-    #         # GET参数："id=1&name=test"→{"id": "1", "name": "test"}
-    #         try:
-    #             # 支持两种JSON格式：
-    #             # 1. 简单键值对：username=admin&password=123 → {"username": "admin", "password": "123"}
-    #             # 2. 嵌套结构：username=admin&steps=[{"repeat":5},{"username":"test"}] → {"username": "admin", "steps": [{"repeat":5},{"username":"test"}]}
-    #             try:
-    #                 # 替换特殊字符以便正确解析
-    #                 params_input = params_input.replace("'", "\"")
-    #                 # 使用json.loads处理带嵌套结构的复杂参数
-    #                 case["参数输入"] = json.loads(f"{{{params_input.replace('=',':').replace('&',',')}}}")
-    #             except json.JSONDecodeError as e:
-    #                 # 提供更清晰的错误提示
-    #                 raise ValueError(f"GET参数JSON解析错误（用例编号：{case['用例编号']}）：{e}。原始参数：{params_input}")
-    #         except ValueError as e:
-    #             raise ValueError(f"GET参数格式错误（用例编号：{case['用例编号']}）：{e}")
-    #     elif request_method == "POST":
-    #         # 根据Content-Type判断是form还是json
-    #         content_type = case["请求头"].get("Content-Type", "")
-    #         if "application/x-www-form-urlencoded" in content_type:
-    #             # form参数："username=test&password=123"→字典
-    #             try:
-    #                 case["参数输入"] = dict(item.split("=", 1) for item in params_input.split("&"))
-    #             except ValueError as e:
-    #                 raise ValueError(f"POST form参数格式错误（用例编号：{case['用例编号']}）：{e}")
-    #         elif "application/json" in content_type:
-    #             # json参数：字符串→字典（需确保Excel中的json格式正确）
-    #             try:
-    #                 # 确保参数输入为有效JSON格式
-    #                 if not params_input.strip():  # 空字符串处理
-    #                     case["参数输入"] = {}
-    #                 else:
-    #                     case["参数输入"] = json.loads(params_input)
-    #             except json.JSONDecodeError as e:
-    #                 raise ValueError(f"POST JSON参数格式错误（用例编号：{case['用例编号']}）：{e}")
-
     # 8. 添加到测试用例列表
         test_cases.append(case)
 
@@ -102,4 +63,4 @@ def read_excel_test_cases(excel_path: str, sheet_name: str) -> list:
 
 
 if __name__ == '__main__':
-    test_cases = read_excel_test_cases("../mall测试用例.xlsx", "Sheet1")
+    test_cases = read_excel_test_cases("../data/mall测试用例.xlsx", "Sheet1")
