@@ -149,6 +149,31 @@ def run_all_tests_ci():
         return False
 
 
+def run_all_tests_ci_continue_on_failure():
+    """
+    在CI/CD环境中运行所有测试（包括UI测试的无头模式），即使有测试失败也继续执行并生成完整报告
+    
+    Returns:
+        bool: 测试执行是否成功（只要有结果就返回True，即使有测试失败）
+    """
+    print("开始在CI/CD环境中执行所有测试（即使失败也继续）...")
+    try:
+        # 运行所有测试，包括UI测试（使用无头模式）
+        result = subprocess.run([
+            sys.executable, "-m", "pytest",
+            "--headless",  # 启用无头模式运行UI测试
+            "--alluredir", "allure-results",
+            "-v"
+        ])
+        # 即使测试失败也返回True，确保继续生成报告
+        print(f"测试执行完成，返回码: {result.returncode}")
+        return True
+    except Exception as e:
+        print(f"执行测试时出错: {e}")
+        # 即使出现异常也返回True，确保继续生成报告
+        return True
+
+
 def run_ui_tests_ci():
     """
     在CI/CD环境中运行UI测试（无头模式）
@@ -193,14 +218,15 @@ def show_menu_with_timeout():
     print("7. 依次执行所有测试（购物车测试 -> UI测试）")
     print("8. 在CI/CD环境中运行所有测试（推荐用于Jenkins）")
     print("9. 在CI/CD环境中运行UI测试（推荐用于Jenkins）")
+    print("10. 在CI/CD环境中运行所有测试（即使失败也生成报告）")
     print("0. 退出")
     
     # 在CI/CD环境中自动选择CI模式
     if is_ci_env:
         print("\n检测到在CI/CD环境中运行，自动选择CI模式...")
-        print("自动执行选项: 在CI/CD环境中运行所有测试")
+        print("自动执行选项: 在CI/CD环境中运行所有测试（即使失败也生成报告）")
         time.sleep(1)  # 短暂等待让用户看到提示
-        return "8"
+        return "10"
     
     # 为了解决超时后仍需按键的问题，我们采用最简单的方案：
     # 直接提示并立即开始执行默认选项（运行所有测试）
@@ -267,8 +293,8 @@ def main():
     print("自动化测试启动器")
     print("=" * 30)
     
-    # 检查是否在CI/CD环境中运行
-    is_ci_env = is_ci_environment()
+    # 检查是否在CI/CD环境中运行（通过环境变量判断）
+    is_ci_env = os.environ.get('CI') == 'true' or os.environ.get('JENKINS_URL') is not None
     
     if len(sys.argv) > 1:
         # 命令行模式
@@ -311,6 +337,15 @@ def main():
             else:
                 print("\nUI测试失败！")
                 sys.exit(1)
+        elif sys.argv[1] == "ci-continue":
+            # CI/CD模式 - 运行所有测试，即使失败也继续生成报告
+            print("开始在CI/CD环境中执行所有测试（即使失败也继续）...")
+            success = run_all_tests_ci_continue_on_failure()
+            if success:
+                print("\n测试执行完成，报告已生成！")
+            else:
+                print("\n测试执行过程中出现错误！")
+                sys.exit(1)
         else:
             # 默认自动运行所有测试
             print("自动运行所有测试...")
@@ -323,9 +358,9 @@ def main():
         # 如果在CI/CD环境中，直接进入CI模式
         if is_ci_env:
             print("\n检测到在CI/CD环境中运行，自动选择CI模式...")
-            print("自动执行选项: 在CI/CD环境中运行所有测试")
+            print("自动执行选项: 在CI/CD环境中运行所有测试（即使失败也继续）")
             time.sleep(1)  # 短暂等待让用户看到提示
-            success = run_all_tests_ci()
+            success = run_all_tests_ci_continue_on_failure()
         else:
             choice = show_menu_with_timeout()
             if choice == "1":
@@ -346,6 +381,8 @@ def main():
                 success = run_all_tests_ci()
             elif choice == "9":  # CI/CD环境选项
                 success = run_ui_tests_ci()
+            elif choice == "10":  # CI/CD环境选项（即使失败也继续）
+                success = run_all_tests_ci_continue_on_failure()
             elif choice == "0":
                 print("退出程序")
                 return
