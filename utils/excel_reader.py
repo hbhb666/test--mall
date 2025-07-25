@@ -56,9 +56,9 @@ def read_excel_test_cases(excel_path: str, sheet_name: str) -> list:
 
     # 9. 关闭workbook
     workbook.close()
-    for case1 in test_cases:
-        print(case1)
-    print(f"成功读取{len(test_cases)}条测试用例")
+    # for case1 in test_cases:
+    #     print(case1)
+    # print(f"成功读取{len(test_cases)}条测试用例")
     return test_cases
 
 

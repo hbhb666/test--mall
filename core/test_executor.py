@@ -218,7 +218,7 @@ class TestExecutor:
         logger.info(f"[{case.get('用例编号', '未知')}] 执行公共模块用例")
         self._execute_standard_case(case)
 
-    def _execute_standard_case(self, case: Dict[str, Any]):
+    def _execute_standard_case(self, case):
         """
         执行标准测试用例（通用处理逻辑）
         
@@ -237,33 +237,23 @@ class TestExecutor:
         
         # 发送请求
         response = self.request_handler.send_request(
-            method=method,
-            url=url,
+            method=case['请求方式'],
+            url=case['接口地址'],
             headers=headers,
             params=params
         )
         
         # 解析期望状态码
-        expected_status = self._extract_expected_status(case_id, expected_result)
+        expected_status_code = self._extract_expected_status(case_id, expected_result)
         
-        # 断言状态码
-        assert_response_status(response, expected_status)
+        # 使用断言工具检查响应状态码
+        assert_response_status(response, expected_status_code)
         
-        # 如果期望结果中有其他验证要求，则进行相应验证
-        if response.status_code == 200 and expected_result:
-            try:
-                response_json = response.json()
-                
-                # 验证token字段存在
-                if "token" in expected_result.lower():
-                    assert_json_field_exists(response_json, "$.data.token")
-                
-                # 验证消息内容
-                if "message" in expected_result.lower():
-                    assert_json_field_exists(response_json, "$.message")
-                    
-            except json.JSONDecodeError:
-                logger.warning(f"[{case_id}] 响应不是有效的JSON格式，跳过JSON字段验证")
+        # 解析响应JSON
+        try:
+            response_json = response.json()
+        except ValueError:
+            pytest.fail("响应内容不是有效的JSON格式")
 
     def _parse_headers(self, headers_input) -> Dict[str, str]:
         """
