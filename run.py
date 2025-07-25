@@ -8,6 +8,22 @@ import os
 import time
 
 
+def install_requirements():
+    """
+    安装项目依赖
+    
+    Returns:
+        bool: 安装是否成功
+    """
+    try:
+        subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], 
+                      check=True)
+        return True
+    except Exception as e:
+        print(f"安装依赖时出错: {e}")
+        return False
+
+
 def run_all_tests():
     """
     运行所有测试并生成Allure报告数据
@@ -17,6 +33,10 @@ def run_all_tests():
     """
     print("开始执行所有测试...")
     try:
+        # 先安装依赖
+        if not install_requirements():
+            return False
+            
         result = subprocess.run([
             sys.executable, "-m", "pytest",
             "--alluredir", "allure-results"
@@ -36,6 +56,10 @@ def run_cart_tests():
     """
     print("开始执行购物车测试...")
     try:
+        # 先安装依赖
+        if not install_requirements():
+            return False
+            
         result = subprocess.run([
             sys.executable, "-m", "pytest",
             "tests/test_cart",
@@ -59,6 +83,10 @@ def run_ui_tests(headless=False):
     """
     print("开始执行UI测试...")
     try:
+        # 先安装依赖
+        if not install_requirements():
+            return False
+            
         cmd = [
             sys.executable, "-m", "pytest",
             "tests/ui_tests/tests",
@@ -85,14 +113,99 @@ def run_with_mark(mark):
     """
     print(f"开始执行标记为 {mark} 的测试...")
     try:
+        # 先安装依赖
+        if not install_requirements():
+            return False
+            
         result = subprocess.run([
             sys.executable, "-m", "pytest",
-            f"-m {mark}",
+            "-m", mark,
             "--alluredir", "allure-results"
         ])
         return result.returncode == 0
     except Exception as e:
         print(f"执行标记测试时出错: {e}")
+        return False
+
+
+def run_ui_tests_with_marker(headless=False):
+    """
+    运行带有ui标记的测试
+    
+    Args:
+        headless (bool): 是否以无头模式运行浏览器，默认为False
+        
+    Returns:
+        bool: 测试执行是否成功
+    """
+    print("开始执行UI标记的测试...")
+    try:
+        # 先安装依赖
+        if not install_requirements():
+            return False
+            
+        cmd = [
+            sys.executable, "-m", "pytest",
+            "-m", "ui",
+            "-v"
+        ]
+        if headless:
+            cmd.append("--headless")
+        result = subprocess.run(cmd)
+        return result.returncode == 0
+    except Exception as e:
+        print(f"执行UI标记测试时出错: {e}")
+        return False
+
+
+def run_all_tests_ci():
+    """
+    在CI/CD环境中运行所有测试（包括UI测试的无头模式）
+    
+    Returns:
+        bool: 测试执行是否成功
+    """
+    print("开始在CI/CD环境中执行所有测试...")
+    try:
+        # 先安装依赖
+        if not install_requirements():
+            return False
+        
+        # 运行所有测试，包括UI测试（使用无头模式）
+        result = subprocess.run([
+            sys.executable, "-m", "pytest",
+            "--headless",  # 启用无头模式运行UI测试
+            "--alluredir", "allure-results"
+        ])
+        return result.returncode == 0
+    except Exception as e:
+        print(f"执行测试时出错: {e}")
+        return False
+
+
+def run_ui_tests_ci():
+    """
+    在CI/CD环境中运行UI测试（无头模式）
+    
+    Returns:
+        bool: 测试执行是否成功
+    """
+    print("开始在CI/CD环境中执行UI测试...")
+    try:
+        # 先安装依赖
+        if not install_requirements():
+            return False
+        
+        # 运行UI测试（使用无头模式）
+        result = subprocess.run([
+            sys.executable, "-m", "pytest",
+            "tests/ui_tests/tests",
+            "--headless",  # 启用无头模式
+            "-v"
+        ])
+        return result.returncode == 0
+    except Exception as e:
+        print(f"执行UI测试时出错: {e}")
         return False
 
 
@@ -104,14 +217,27 @@ def show_menu_with_timeout():
     Returns:
         str: 用户选择的选项，超时则返回"1"（运行所有测试）
     """
+    # 检查是否在CI/CD环境中运行
+    is_ci_env = os.environ.get('CI') == 'true' or os.environ.get('JENKINS_URL') is not None
+    
     print("\n请选择要执行的操作:")
     print("1. 运行所有测试")
     print("2. 运行购物车测试")
     print("3. 运行带cart标记的测试")
     print("4. 运行UI测试")
     print("5. 运行UI测试(无头模式)")
-    print("6. 依次执行所有测试（购物车测试 -> UI测试）")
+    print("6. 运行带ui标记的测试")
+    print("7. 依次执行所有测试（购物车测试 -> UI测试）")
+    print("8. 在CI/CD环境中运行所有测试（推荐用于Jenkins）")
+    print("9. 在CI/CD环境中运行UI测试（推荐用于Jenkins）")
     print("0. 退出")
+    
+    # 在CI/CD环境中自动选择CI模式
+    if is_ci_env:
+        print("\n检测到在CI/CD环境中运行，自动选择CI模式...")
+        print("自动执行选项: 在CI/CD环境中运行所有测试")
+        time.sleep(1)  # 短暂等待让用户看到提示
+        return "8"
     
     # 为了解决超时后仍需按键的问题，我们采用最简单的方案：
     # 直接提示并立即开始执行默认选项（运行所有测试）
@@ -163,6 +289,9 @@ def main():
     print("自动化测试启动器")
     print("=" * 30)
     
+    # 检查是否在CI/CD环境中运行（通过环境变量判断）
+    is_ci_env = os.environ.get('CI') == 'true' or os.environ.get('JENKINS_URL') is not None
+    
     if len(sys.argv) > 1:
         # 命令行模式
         if sys.argv[1] == "ui":
@@ -186,6 +315,24 @@ def main():
             else:
                 print("\n某些测试执行失败！")
                 sys.exit(1)
+        elif sys.argv[1] == "ci":
+            # CI/CD模式 - 运行所有测试（包括无头模式的UI测试）
+            print("开始在CI/CD环境中执行所有测试...")
+            success = run_all_tests_ci()
+            if success:
+                print("\n所有测试均已成功执行完成！")
+            else:
+                print("\n某些测试执行失败！")
+                sys.exit(1)
+        elif sys.argv[1] == "ci-ui":
+            # CI/CD模式 - 仅运行UI测试（无头模式）
+            print("开始在CI/CD环境中执行UI测试...")
+            success = run_ui_tests_ci()
+            if success:
+                print("\nUI测试执行完成！")
+            else:
+                print("\nUI测试失败！")
+                sys.exit(1)
         else:
             # 默认自动运行所有测试
             print("自动运行所有测试...")
@@ -206,8 +353,14 @@ def main():
             success = run_ui_tests()
         elif choice == "5":
             success = run_ui_tests(headless=True)
-        elif choice == "6":  # 新增选项
+        elif choice == "6":
+            success = run_ui_tests_with_marker()
+        elif choice == "7":  # 新增选项
             success = run_all_tests_sequentially()
+        elif choice == "8":  # CI/CD环境选项
+            success = run_all_tests_ci()
+        elif choice == "9":  # CI/CD环境选项
+            success = run_ui_tests_ci()
         elif choice == "0":
             print("退出程序")
             return
