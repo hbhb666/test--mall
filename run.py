@@ -15,13 +15,35 @@ def install_requirements():
     Returns:
         bool: 安装是否成功
     """
+    import os
     try:
-        subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], 
-                      check=True)
-        return True
+        # 检查requirements.txt文件是否存在
+        if not os.path.exists("requirements.txt"):
+            print("警告: requirements.txt文件不存在，跳过依赖安装")
+            return True
+            
+        print("开始安装项目依赖...")
+        # 先尝试升级pip
+        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], 
+                      capture_output=True)
+        
+        # 安装依赖
+        result = subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"],
+                               capture_output=True, text=True)
+        if result.returncode == 0:
+            print("依赖安装成功!")
+            return True
+        else:
+            print("依赖安装失败!")
+            print(f"错误输出: {result.stderr}")
+            # 即使安装失败也继续执行测试，因为可能已经安装了所需依赖
+            print("继续执行测试...")
+            return True
     except Exception as e:
         print(f"安装依赖时出错: {e}")
-        return False
+        # 即使出现异常也继续执行测试
+        print("继续执行测试...")
+        return True
 
 
 def run_all_tests():
@@ -35,11 +57,12 @@ def run_all_tests():
     try:
         # 先安装依赖
         if not install_requirements():
-            return False
+            print("警告: 依赖安装可能失败，但仍继续执行测试")
             
         result = subprocess.run([
             sys.executable, "-m", "pytest",
-            "--alluredir", "allure-results"
+            "--alluredir", "allure-results",
+            "-v"
         ])
         return result.returncode == 0
     except Exception as e:
@@ -58,12 +81,13 @@ def run_cart_tests():
     try:
         # 先安装依赖
         if not install_requirements():
-            return False
+            print("警告: 依赖安装可能失败，但仍继续执行测试")
             
         result = subprocess.run([
             sys.executable, "-m", "pytest",
             "tests/test_cart",
-            "--alluredir", "allure-results"
+            "--alluredir", "allure-results",
+            "-v"
         ])
         return result.returncode == 0
     except Exception as e:
@@ -85,11 +109,12 @@ def run_ui_tests(headless=False):
     try:
         # 先安装依赖
         if not install_requirements():
-            return False
+            print("警告: 依赖安装可能失败，但仍继续执行测试")
             
         cmd = [
             sys.executable, "-m", "pytest",
             "tests/ui_tests/tests",
+            "--alluredir", "allure-results",
             "-v"
         ]
         if headless:
@@ -115,12 +140,13 @@ def run_with_mark(mark):
     try:
         # 先安装依赖
         if not install_requirements():
-            return False
+            print("警告: 依赖安装可能失败，但仍继续执行测试")
             
         result = subprocess.run([
             sys.executable, "-m", "pytest",
             "-m", mark,
-            "--alluredir", "allure-results"
+            "--alluredir", "allure-results",
+            "-v"
         ])
         return result.returncode == 0
     except Exception as e:
@@ -142,11 +168,12 @@ def run_ui_tests_with_marker(headless=False):
     try:
         # 先安装依赖
         if not install_requirements():
-            return False
+            print("警告: 依赖安装可能失败，但仍继续执行测试")
             
         cmd = [
             sys.executable, "-m", "pytest",
             "-m", "ui",
+            "--alluredir", "allure-results",
             "-v"
         ]
         if headless:
@@ -169,13 +196,14 @@ def run_all_tests_ci():
     try:
         # 先安装依赖
         if not install_requirements():
-            return False
+            print("警告: 依赖安装可能失败，但仍继续执行测试")
         
         # 运行所有测试，包括UI测试（使用无头模式）
         result = subprocess.run([
             sys.executable, "-m", "pytest",
             "--headless",  # 启用无头模式运行UI测试
-            "--alluredir", "allure-results"
+            "--alluredir", "allure-results",
+            "-v"
         ])
         return result.returncode == 0
     except Exception as e:
@@ -194,13 +222,14 @@ def run_ui_tests_ci():
     try:
         # 先安装依赖
         if not install_requirements():
-            return False
+            print("警告: 依赖安装可能失败，但仍继续执行测试")
         
         # 运行UI测试（使用无头模式）
         result = subprocess.run([
             sys.executable, "-m", "pytest",
             "tests/ui_tests/tests",
             "--headless",  # 启用无头模式
+            "--alluredir", "allure-results",
             "-v"
         ])
         return result.returncode == 0
@@ -257,6 +286,10 @@ def run_all_tests_sequentially():
     """
     print("开始依次执行所有测试...")
     print("=" * 30)
+    
+    # 先安装依赖
+    if not install_requirements():
+        print("警告: 依赖安装可能失败，但仍继续执行测试")
     
     # 1. 首先执行购物车测试
     print("\n1. 执行购物车测试...")
