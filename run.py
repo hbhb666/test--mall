@@ -139,7 +139,6 @@ def run_all_tests_ci():
         # 运行所有测试，包括UI测试（使用无头模式）
         result = subprocess.run([
             sys.executable, "-m", "pytest",
-            "--headless",  # 启用无头模式运行UI测试
             "--alluredir", "allure-results",
             "-v"
         ])
@@ -151,17 +150,16 @@ def run_all_tests_ci():
 
 def run_all_tests_ci_continue_on_failure():
     """
-    在CI/CD环境中运行所有测试（包括UI测试的无头模式），即使有测试失败也继续执行并生成完整报告
+    在CI/CD环境中运行所有测试（即使有测试失败也继续执行）并生成完整报告
     
     Returns:
         bool: 测试执行是否成功（只要有结果就返回True，即使有测试失败）
     """
     print("开始在CI/CD环境中执行所有测试（即使失败也继续）...")
     try:
-        # 运行所有测试，包括UI测试（使用无头模式）
+        # 运行所有测试
         result = subprocess.run([
             sys.executable, "-m", "pytest",
-            "--headless",  # 启用无头模式运行UI测试
             "--alluredir", "allure-results",
             "-v"
         ])
@@ -216,17 +214,18 @@ def show_menu_with_timeout():
     print("5. 运行UI测试(无头模式)")
     print("6. 运行带ui标记的测试")
     print("7. 依次执行所有测试（购物车测试 -> UI测试）")
-    print("8. 在CI/CD环境中运行所有测试（推荐用于Jenkins）")
-    print("9. 在CI/CD环境中运行UI测试（推荐用于Jenkins）")
+    print("8. 在CI/CD环境中运行所有测试")
+    print("9. 在CI/CD环境中运行UI测试（无头模式）")
     print("10. 在CI/CD环境中运行所有测试（即使失败也生成报告）")
+    print("11. 在CI/CD环境中运行所有测试（UI测试使用无头模式）")
     print("0. 退出")
     
     # 在CI/CD环境中自动选择CI模式
     if is_ci_env:
         print("\n检测到在CI/CD环境中运行，自动选择CI模式...")
-        print("自动执行选项: 在CI/CD环境中运行所有测试（即使失败也生成报告）")
+        print("自动执行选项: 在CI/CD环境中运行所有测试（UI测试使用无头模式）")
         time.sleep(1)  # 短暂等待让用户看到提示
-        return "10"
+        return "11"
     
     # 为了解决超时后仍需按键的问题，我们采用最简单的方案：
     # 直接提示并立即开始执行默认选项（运行所有测试）
@@ -346,6 +345,24 @@ def main():
             else:
                 print("\n测试执行过程中出现错误！")
                 sys.exit(1)
+        elif sys.argv[1] == "ci-headless":
+            # CI/CD模式 - 运行所有测试，UI测试使用无头模式
+            print("开始在CI/CD环境中执行所有测试（UI测试使用无头模式）...")
+            success = run_all_tests_ci_with_ui_headless()
+            if success:
+                print("\n所有测试均已成功执行完成！")
+            else:
+                print("\n某些测试执行失败！")
+                sys.exit(1)
+        elif sys.argv[1] == "ui-headless":
+            # 无头模式运行UI测试
+            print("开始执行UI测试（无头模式）...")
+            success = run_ui_tests_with_headless()
+            if success:
+                print("\nUI测试执行完成！")
+            else:
+                print("\nUI测试失败！")
+                sys.exit(1)
         else:
             # 默认自动运行所有测试
             print("自动运行所有测试...")
@@ -358,9 +375,9 @@ def main():
         # 如果在CI/CD环境中，直接进入CI模式
         if is_ci_env:
             print("\n检测到在CI/CD环境中运行，自动选择CI模式...")
-            print("自动执行选项: 在CI/CD环境中运行所有测试（即使失败也继续）")
+            print("自动执行选项: 在CI/CD环境中运行所有测试（UI测试使用无头模式）")
             time.sleep(1)  # 短暂等待让用户看到提示
-            success = run_all_tests_ci_continue_on_failure()
+            success = run_all_tests_ci_with_ui_headless()
         else:
             choice = show_menu_with_timeout()
             if choice == "1":
@@ -383,6 +400,8 @@ def main():
                 success = run_ui_tests_ci()
             elif choice == "10":  # CI/CD环境选项（即使失败也继续）
                 success = run_all_tests_ci_continue_on_failure()
+            elif choice == "11":  # CI/CD环境选项（UI测试使用无头模式）
+                success = run_all_tests_ci_with_ui_headless()
             elif choice == "0":
                 print("退出程序")
                 return
