@@ -135,7 +135,9 @@ class UserPage(BasePage):
         使用XPath定位器来查找并点击"我的关注"元素。
         """
         print("正在点击'我的关注'")
-        self.click(*self.my_following)
+        # 使用JavaScript点击避免元素被遮挡
+        element = self.driver_manager.find_element(*self.my_following)
+        self.driver.execute_script("arguments[0].click();", element)
         # 点击后等待1秒
         import time
         time.sleep(1)
