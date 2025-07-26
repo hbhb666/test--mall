@@ -191,15 +191,17 @@ def run_all_tests_ci_with_ui_headless():
             "-v"
         ])
         
-        # 再运行UI测试（使用无头模式）
+        # 切换到UI测试目录并运行UI测试（使用无头模式）
         print("2. 运行UI测试（无头模式）...")
+        # 更改工作目录到UI测试目录
+        ui_test_dir = os.path.join(os.getcwd(), "tests", "ui_tests")
         result2 = subprocess.run([
             sys.executable, "-m", "pytest",
-            "tests/ui_tests/tests",
-            "--alluredir", "allure-results",
+            "tests",
+            "--alluredir", "../../allure-results",  # 输出到上级目录的allure-results
             "--headless",  # 启用无头模式运行UI测试
             "-v"
-        ])
+        ], cwd=ui_test_dir)  # 在UI测试目录中运行
         
         # 只有当所有测试都成功时才返回True
         return result1.returncode == 0 and result2.returncode == 0
