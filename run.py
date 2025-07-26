@@ -150,14 +150,14 @@ def run_all_tests_ci():
 
 def run_all_tests_ci_continue_on_failure():
     """
-    在CI/CD环境中运行所有测试（即使有测试失败也继续执行）并生成完整报告
+    在CI/CD环境中运行所有测试（包括UI测试的无头模式），即使有测试失败也继续执行并生成完整报告
     
     Returns:
         bool: 测试执行是否成功（只要有结果就返回True，即使有测试失败）
     """
     print("开始在CI/CD环境中执行所有测试（即使失败也继续）...")
     try:
-        # 运行所有测试
+        # 运行所有测试，包括UI测试（使用无头模式）
         result = subprocess.run([
             sys.executable, "-m", "pytest",
             "--alluredir", "allure-results",
@@ -170,6 +170,28 @@ def run_all_tests_ci_continue_on_failure():
         print(f"执行测试时出错: {e}")
         # 即使出现异常也返回True，确保继续生成报告
         return True
+
+
+def run_all_tests_ci_with_ui_headless():
+    """
+    在CI/CD环境中运行所有测试，UI测试使用无头模式
+    
+    Returns:
+        bool: 测试执行是否成功
+    """
+    print("开始在CI/CD环境中执行所有测试（UI测试使用无头模式）...")
+    try:
+        # 运行所有测试，UI测试使用无头模式
+        result = subprocess.run([
+            sys.executable, "-m", "pytest",
+            "--alluredir", "allure-results",
+            "--headless",  # 启用无头模式运行UI测试
+            "-v"
+        ])
+        return result.returncode == 0
+    except Exception as e:
+        print(f"执行测试时出错: {e}")
+        return False
 
 
 def run_ui_tests_ci():
