@@ -181,14 +181,28 @@ def run_all_tests_ci_with_ui_headless():
     """
     print("开始在CI/CD环境中执行所有测试（UI测试使用无头模式）...")
     try:
-        # 运行所有测试，UI测试使用无头模式
-        result = subprocess.run([
+        # 先运行非UI测试
+        print("1. 运行非UI测试...")
+        result1 = subprocess.run([
             sys.executable, "-m", "pytest",
+            "tests/test_cart",  # 只运行购物车测试
+            "tests/test_auth",  # 只运行认证测试
+            "--alluredir", "allure-results",
+            "-v"
+        ])
+        
+        # 再运行UI测试（使用无头模式）
+        print("2. 运行UI测试（无头模式）...")
+        result2 = subprocess.run([
+            sys.executable, "-m", "pytest",
+            "tests/ui_tests/tests",
             "--alluredir", "allure-results",
             "--headless",  # 启用无头模式运行UI测试
             "-v"
         ])
-        return result.returncode == 0
+        
+        # 只有当所有测试都成功时才返回True
+        return result1.returncode == 0 and result2.returncode == 0
     except Exception as e:
         print(f"执行测试时出错: {e}")
         return False
